@@ -1,6 +1,6 @@
-# Repo Deployer
+# Auto-Git
 
-一个基于 Tauri 的桌面工具，用来把本地文件夹快速绑定到 Git 仓库，并完成提交、推送以及可选部署。
+Repo Deployer 是一个基于 Tauri 的桌面工具，用来把本地文件夹快速绑定到 Git 仓库，并完成提交、推送以及可选部署。
 
 ## 当前支持
 
@@ -31,8 +31,6 @@
 - Git
 - Rust 工具链
 - Tauri Windows 前置依赖
-
-当前这台机器已确认有 `Node.js`，但还没有 `Rust`，所以暂时无法在这里直接启动 Tauri 后端窗口。
 
 ## 启动方式
 
