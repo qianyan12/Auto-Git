@@ -1,29 +1,26 @@
 {
-  "name": "repo-deployer-desktop",
+  "name": "repo-deployer",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
-    "tauri": "node scripts/run-tauri.mjs",
-    "tauri:dev": "node scripts/run-tauri.mjs dev",
-    "tauri:build": "node scripts/run-tauri.mjs build --bundles nsis",
-    "tauri:exe": "node scripts/run-tauri.mjs build --no-bundle"
+    "tauri": "node ./scripts/run-tauri.mjs"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.11.0",
-    "@tauri-apps/plugin-dialog": "^2.7.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "@tauri-apps/api": "2.11.0",
+    "@tauri-apps/plugin-dialog": "2.7.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.11.2",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "@vitejs/plugin-react": "^4.4.1",
-    "typescript": "^5.9.3",
-    "vite": "^6.4.1"
+    "@tauri-apps/cli": "2.11.2",
+    "@types/react": "19.2.5",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "4.7.0",
+    "typescript": "5.9.3",
+    "vite": "6.4.3"
   }
 }

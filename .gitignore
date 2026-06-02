@@ -1,4 +1,17 @@
 node_modules/
 dist/
+.vite/
+output/
+
 src-tauri/target/
+src-tauri/gen/
+
+.env
+.env.*
+!.env.example
+
 *.log
+*.tmp
+*.pdb
+.DS_Store
+Thumbs.db

@@ -65,6 +65,8 @@ struct ProjectInspection {
     has_origin_remote: bool,
     remote_url: Option<String>,
     current_branch: Option<String>,
+    git_user_name: Option<String>,
+    git_user_email: Option<String>,
     has_changes: bool,
     status_summary: String,
 }
@@ -284,7 +286,11 @@ fn remote_branch_exists(path: &Path, branch: &str) -> bool {
 fn parse_default_branch(text: &str) -> Option<String> {
     text.lines().find_map(|line| {
         if line.contains("refs/heads/") && line.contains("HEAD") {
-            line.split("refs/heads/").nth(1).map(|part| part.trim().to_string())
+            line.split("refs/heads/").nth(1).and_then(|part| {
+                part.split_whitespace()
+                    .next()
+                    .map(|branch| branch.trim().to_string())
+            })
         } else {
             None
         }
@@ -377,6 +383,16 @@ fn inspect(path: &Path) -> ProjectInspection {
     let git_initialized = folder_exists && is_git_repo(path);
     let remote_url = if git_initialized { current_remote(path) } else { None };
     let current_branch = if git_initialized { current_branch(path) } else { None };
+    let git_user_name = if git_initialized {
+        git_config(Some(path), "user.name").or_else(|| git_config(None, "user.name"))
+    } else {
+        None
+    };
+    let git_user_email = if git_initialized {
+        git_config(Some(path), "user.email").or_else(|| git_config(None, "user.email"))
+    } else {
+        None
+    };
     let has_changes = if git_initialized { has_changes(path) } else { false };
 
     let status_summary = if !folder_exists {
@@ -397,6 +413,8 @@ fn inspect(path: &Path) -> ProjectInspection {
         has_origin_remote: remote_url.is_some(),
         remote_url,
         current_branch,
+        git_user_name,
+        git_user_email,
         has_changes,
         status_summary,
     }
