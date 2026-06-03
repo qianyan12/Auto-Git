@@ -628,6 +628,12 @@ function App() {
     setLogs((current) => [entry, ...current].slice(0, 160));
   }
 
+  function waitForPaint() {
+    return new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    });
+  }
+
   function updateForm<K extends keyof ProjectProfile>(key: K, value: ProjectProfile[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
@@ -865,6 +871,8 @@ function App() {
 
     setBusyAction(withDeploy ? "sync-deploy" : "sync");
     appendLog(withDeploy ? "开始执行提交流程并准备部署。" : "开始执行 Git 同步流程。");
+
+    await waitForPaint();
 
     try {
       const result = await invoke<SyncReport>("run_repository_sync", {

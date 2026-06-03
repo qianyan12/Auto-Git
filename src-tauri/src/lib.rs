@@ -329,8 +329,12 @@ fn authentication_hint(repo_url: &str, stderr: &str) -> Option<String> {
     }
 }
 
-fn inspect_remote(repo_url: &str, working_dir: &Path) -> Result<RepositoryConnectionReport, String> {
-    let git_user_name = git_config(Some(working_dir), "user.name").or_else(|| git_config(None, "user.name"));
+fn inspect_remote(
+    repo_url: &str,
+    working_dir: &Path,
+) -> Result<RepositoryConnectionReport, String> {
+    let git_user_name =
+        git_config(Some(working_dir), "user.name").or_else(|| git_config(None, "user.name"));
     let git_user_email =
         git_config(Some(working_dir), "user.email").or_else(|| git_config(None, "user.email"));
 
@@ -342,12 +346,18 @@ fn inspect_remote(repo_url: &str, working_dir: &Path) -> Result<RepositoryConnec
             remote_branches: Vec::new(),
             git_user_name,
             git_user_email,
-            authentication_hint: Some("仓库地址格式看起来不完整，建议使用 https://...git 或 git@...:...git。".to_string()),
+            authentication_hint: Some(
+                "仓库地址格式看起来不完整，建议使用 https://...git 或 git@...:...git。".to_string(),
+            ),
             summary: "仓库地址格式不正确".to_string(),
         });
     }
 
-    let output = run_command("git", &["ls-remote", "--symref", repo_url, "HEAD"], working_dir)?;
+    let output = run_command(
+        "git",
+        &["ls-remote", "--symref", repo_url, "HEAD"],
+        working_dir,
+    )?;
     let default_branch = parse_default_branch(&output.stdout);
     let branches = parse_remote_branches(&output.stdout);
     let auth_hint = if output.success {
@@ -381,8 +391,16 @@ fn inspect_remote(repo_url: &str, working_dir: &Path) -> Result<RepositoryConnec
 fn inspect(path: &Path) -> ProjectInspection {
     let folder_exists = path.exists() && path.is_dir();
     let git_initialized = folder_exists && is_git_repo(path);
-    let remote_url = if git_initialized { current_remote(path) } else { None };
-    let current_branch = if git_initialized { current_branch(path) } else { None };
+    let remote_url = if git_initialized {
+        current_remote(path)
+    } else {
+        None
+    };
+    let current_branch = if git_initialized {
+        current_branch(path)
+    } else {
+        None
+    };
     let git_user_name = if git_initialized {
         git_config(Some(path), "user.name").or_else(|| git_config(None, "user.name"))
     } else {
@@ -393,7 +411,11 @@ fn inspect(path: &Path) -> ProjectInspection {
     } else {
         None
     };
-    let has_changes = if git_initialized { has_changes(path) } else { false };
+    let has_changes = if git_initialized {
+        has_changes(path)
+    } else {
+        false
+    };
 
     let status_summary = if !folder_exists {
         "本地文件夹不存在".to_string()
@@ -557,8 +579,11 @@ fn commit_and_push(
                 output: "没有检测到新的文件改动，本次跳过 commit。".to_string(),
             });
         } else {
-            let empty_commit =
-                run_command("git", &["commit", "--allow-empty", "-m", commit_message], path)?;
+            let empty_commit = run_command(
+                "git",
+                &["commit", "--allow-empty", "-m", commit_message],
+                path,
+            )?;
             let success = empty_commit.success;
             steps.push(make_step(
                 "创建初始化提交",
@@ -585,7 +610,13 @@ fn commit_and_push(
     if remote_branch_exists(path, branch) {
         let pull = run_command(
             "git",
-            &["pull", "origin", branch, "--no-rebase", "--allow-unrelated-histories"],
+            &[
+                "pull",
+                "origin",
+                branch,
+                "--no-rebase",
+                "--allow-unrelated-histories",
+            ],
             path,
         )?;
         let success = pull.success;
@@ -636,25 +667,36 @@ fn save_state(app: AppHandle, state: PersistedState) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn inspect_project(request: InspectRequest) -> Result<ProjectInspection, String> {
-    let folder = normalize_path(&request.folder_path);
-    Ok(inspect(&folder))
+async fn inspect_project(request: InspectRequest) -> Result<ProjectInspection, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let folder = normalize_path(&request.folder_path);
+        Ok(inspect(&folder))
+    })
+    .await
+    .map_err(|error| format!("后台检查任务执行失败：{error}"))?
 }
 
 #[tauri::command]
-fn check_repository_connection(request: ConnectionRequest) -> Result<RepositoryConnectionReport, String> {
-    let working_dir = request
-        .folder_path
-        .as_deref()
-        .map(normalize_path)
-        .filter(|path| path.exists() && path.is_dir())
-        .unwrap_or(std::env::current_dir().map_err(|error| format!("无法读取当前目录：{error}"))?);
+async fn check_repository_connection(
+    request: ConnectionRequest,
+) -> Result<RepositoryConnectionReport, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let working_dir = request
+            .folder_path
+            .as_deref()
+            .map(normalize_path)
+            .filter(|path| path.exists() && path.is_dir())
+            .unwrap_or(
+                std::env::current_dir().map_err(|error| format!("无法读取当前目录：{error}"))?,
+            );
 
-    inspect_remote(request.repo_url.trim(), &working_dir)
+        inspect_remote(request.repo_url.trim(), &working_dir)
+    })
+    .await
+    .map_err(|error| format!("后台连接检查任务执行失败：{error}"))?
 }
 
-#[tauri::command]
-fn run_repository_sync(request: SyncRequest) -> Result<SyncReport, String> {
+fn run_repository_sync_blocking(request: SyncRequest) -> Result<SyncReport, String> {
     let folder = normalize_path(&request.folder_path);
     ensure_folder_exists(&folder)?;
 
@@ -698,6 +740,13 @@ fn run_repository_sync(request: SyncRequest) -> Result<SyncReport, String> {
         inspection: inspect(&folder),
         steps,
     })
+}
+
+#[tauri::command]
+async fn run_repository_sync(request: SyncRequest) -> Result<SyncReport, String> {
+    tauri::async_runtime::spawn_blocking(move || run_repository_sync_blocking(request))
+        .await
+        .map_err(|error| format!("后台同步任务执行失败：{error}"))?
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
